@@ -13,6 +13,9 @@ document.addEventListener("DOMContentLoaded", () => {
       // Clear loading message
       activitiesList.innerHTML = "";
 
+      // Reset the activity select so we don't duplicate options
+      activitySelect.innerHTML = '<option value="">-- Select an activity --</option>';
+
       // Populate activities list
       Object.entries(activities).forEach(([name, details]) => {
         const activityCard = document.createElement("div");
@@ -20,11 +23,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
 
-        // Build participants HTML: a bulleted list if there are participants,
+        // Build participants HTML: a list with a delete button next to each participant,
         // otherwise a small friendly placeholder.
         const participantsList = details.participants.length
           ? `<ul class="participants-list">${details.participants
-              .map((p) => `<li>${p}</li>`)
+              .map(
+                (p) =>
+                  `<li><span class="participant-email">${p}</span><button class="participant-delete" data-email="${p}" title="Unregister ${p}" aria-label="Unregister ${p}">×</button></li>`
+              )
               .join("")}</ul>`
           : `<p class="participants-empty">No participants yet</p>`;
 
@@ -46,6 +52,54 @@ document.addEventListener("DOMContentLoaded", () => {
         option.value = name;
         option.textContent = name;
         activitySelect.appendChild(option);
+
+        // Attach delete handlers for any delete buttons in this activity card
+        const deleteButtons = activityCard.querySelectorAll(".participant-delete");
+        deleteButtons.forEach((btn) => {
+          btn.addEventListener("click", async (e) => {
+            const email = btn.getAttribute("data-email");
+
+            // Optimistically disable button to prevent double clicks
+            btn.disabled = true;
+
+            try {
+              const res = await fetch(
+                `/activities/${encodeURIComponent(name)}/participants?email=${encodeURIComponent(email)}`,
+                {
+                  method: "DELETE",
+                }
+              );
+
+              const result = await res.json();
+
+              if (res.ok) {
+                // Show a short success message
+                messageDiv.textContent = result.message || `Unregistered ${email}`;
+                messageDiv.className = "success";
+                messageDiv.classList.remove("hidden");
+
+                // Refresh activities to reflect the change
+                fetchActivities();
+              } else {
+                messageDiv.textContent = result.detail || "Failed to unregister participant";
+                messageDiv.className = "error";
+                messageDiv.classList.remove("hidden");
+                btn.disabled = false;
+              }
+
+              // Hide message after 4 seconds
+              setTimeout(() => {
+                messageDiv.classList.add("hidden");
+              }, 4000);
+            } catch (err) {
+              console.error("Error unregistering participant:", err);
+              messageDiv.textContent = "Failed to unregister participant. Please try again.";
+              messageDiv.className = "error";
+              messageDiv.classList.remove("hidden");
+              btn.disabled = false;
+            }
+          });
+        });
       });
     } catch (error) {
       activitiesList.innerHTML = "<p>Failed to load activities. Please try again later.</p>";
@@ -74,6 +128,9 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+
+        // Refresh activities to show the newly signed up participant
+        fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";

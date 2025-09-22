@@ -78,9 +78,35 @@ document.addEventListener("DOMContentLoaded", () => {
                 messageDiv.className = "success";
                 messageDiv.classList.remove("hidden");
 
-                // Refresh activities to reflect the change
-                fetchActivities();
-              } else {
+                // Update the DOM for this activity card only
+                // Remove the participant's <li> from the participants list
+                const li = btn.closest("li");
+                if (li) {
+                  const ul = li.parentElement;
+                  li.remove();
+                  // If the list is now empty, show the "No participants yet" placeholder
+                  if (ul && ul.children.length === 0) {
+                    const emptyMsg = document.createElement("p");
+                    emptyMsg.className = "participants-empty";
+                    emptyMsg.textContent = "No participants yet";
+                    ul.parentElement.replaceChild(emptyMsg, ul);
+                  }
+                }
+                // Update the spots left
+                // Find the <p> with "<strong>Availability:</strong>"
+                // ":contains" is not a standard selector, so use a workaround
+                const availabilityPs = activityCard.querySelectorAll("p");
+                for (const p of availabilityPs) {
+                  if (p.querySelector("strong") && p.querySelector("strong").textContent.trim() === "Availability:") {
+                    // Parse the current spots left, increment by 1
+                    const match = p.textContent.match(/(\d+)\s+spots left/);
+                    if (match) {
+                      const spotsLeft = parseInt(match[1], 10) + 1;
+                      p.innerHTML = `<strong>Availability:</strong> ${spotsLeft} spots left`;
+                    }
+                    break;
+                  }
+                }
                 messageDiv.textContent = result.detail || "Failed to unregister participant";
                 messageDiv.className = "error";
                 messageDiv.classList.remove("hidden");

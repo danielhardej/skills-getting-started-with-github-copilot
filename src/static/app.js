@@ -4,6 +4,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
 
+  // Helper function to escape HTML special characters
+  function escapeHtml(unsafe) {
+    return unsafe
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
   // Function to fetch activities from API
   async function fetchActivities() {
     try {
@@ -29,7 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
           ? `<ul class="participants-list">${details.participants
               .map(
                 (p) =>
-                  `<li><span class="participant-email">${p}</span><button class="participant-delete" data-email="${p}" title="Unregister ${p}" aria-label="Unregister ${p}">×</button></li>`
+                  `<li><span class="participant-email">${escapeHtml(p)}</span><button class="participant-delete" data-email="${escapeHtml(p)}" title="Unregister ${escapeHtml(p)}" aria-label="Unregister ${escapeHtml(p)}">×</button></li>`
               )
               .join("")}</ul>`
           : `<p class="participants-empty">No participants yet</p>`;
